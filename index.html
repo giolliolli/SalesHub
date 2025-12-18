@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cerve Sales Hub</title>
+    
+    <!-- PWA & ICONS -->
+    <link rel="icon" href="Logo CERVE WebApp.jpg">
+    <link rel="apple-touch-icon" href="Logo CERVE WebApp.jpg">
+    <meta name="theme-color" content="#b01b30">
+
+    <!-- LIBRARIES -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CONFIGURAZIONE TEMA CERVE -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cerve: {
+                            DEFAULT: '#b01b30', // Rosso Cerve
+                            hover: '#8a1525',
+                            light: '#fdf2f2',
+                            text: '#b01b30'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    spacing: {
+                        'safe-top': 'env(safe-area-inset-top)',
+                        'safe-bottom': 'env(safe-area-inset-bottom)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f8fafc; color: #334155; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .view-section { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .view-section.active { display: block; opacity: 1; }
+        .input-cerve { width: 100%; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background-color: white; transition: all 0.2s; font-size: 0.875rem; }
+        .input-cerve:focus { outline: none; border-color: #b01b30; box-shadow: 0 0 0 3px rgba(176, 27, 48, 0.1); }
+        .label-tiny { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 0.25rem; }
+        .mobile-nav-item.active { color: #b01b30; }
+        .select-wrapper { position: relative; }
+        .select-wrapper::after { content: ''; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #6b7280; pointer-events: none; }
+        .header-safe-area { padding-top: env(safe-area-inset-top); }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- FIREBASE SETUP -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, getDocs, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+
+        // --- CONFIGURAZIONE FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyByMdlKYJR5nHpGViTIfUt9rbimBkemJ1I",
+            authDomain: "crm-lite-26dfa.firebaseapp.com",
+            projectId: "crm-lite-26dfa",
+            storageBucket: "crm-lite-26dfa.firebasestorage.app",
+            messagingSenderId: "460439762416",
+            appId: "1:460439762416:web:25def868a79ce23b7b9935",
+            measurementId: "G-R57WVLXKER"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        window.db = db;
+        window.auth = auth;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.serverTimestamp = serverTimestamp;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.onSnapshot = onSnapshot;
+        window.getDocs = getDocs;
+        window.where = where;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                // Estrae Nome Utente dalla mail
+                const emailName = user.email.split('@')[0].replace('.', ' ');
+                const formattedName = emailName.replace(/\b\w/g, l => l.toUpperCase());
+                document.getElementById('user-name-display').textContent = formattedName;
+                document.getElementById('user-email-display').textContent = user.email;
+                initApp();
+            } else {
+                document.getElementById('login-view').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
+            }
+        });
+
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const em = document.getElementById('login-email').value;
+            const pw = document.getElementById('login-password').value;
+            try { await signInWithEmailAndPassword(auth, em, pw); } 
+            catch(err) { alert("Login fallito: " + err.message); }
+        };
+        window.doLogout = () => signOut(auth);
+    </script>
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-view" class="fixed inset-0 z-[100] bg-white flex items-center justify-center">
+        <div class="w-full max-w-sm p-8">
+            <div class="text-center mb-10">
+                <img src="Logo CERVE WebApp.jpg" class="w-24 mx-auto mb-4 rounded-lg shadow-md object-contain">
+                <h1 class="text-3xl font-bold text-gray-800">Cerve Sales Hub</h1>
+                <p class="text-gray-500 mt-2">Portale Agenti & CRM</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-6">
+                <div><label class="block text-sm font-semibold text-gray-700 mb-2">Email</label><input type="email" id="login-email" class="input-cerve" required></div>
+                <div><label class="block text-sm font-semibold text-gray-700 mb-2">Password</label><input type="password" id="login-password" class="input-cerve" required></div>
+                <button type="submit" class="w-full bg-cerve hover:bg-cerve-hover text-white font-bold py-3 rounded-lg shadow-lg transition-all transform active:scale-95">Accedi</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. MAIN APP LAYOUT -->
+    <div id="main-app" class="hidden flex h-full bg-slate-50">
+        <!-- SIDEBAR -->
+        <aside class="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col z-20">
+            <div class="p-6 border-b border-gray-100 flex items-center gap-3">
+                <img src="Logo CERVE WebApp.jpg" class="w-8 h-8 rounded shadow-sm object-cover">
+                <span class="font-bold text-lg text-cerve tracking-tight">Cerve Sales</span>
+            </div>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <button onclick="nav('dashboard')" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-cerve-light hover:text-cerve transition-colors" id="menu-dashboard"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</button>
+                <button onclick="nav('new-report')" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-lg text-white bg-cerve hover:bg-cerve-hover shadow-md my-4 transition-transform hover:scale-[1.02]" id="menu-new-report"><i data-lucide="plus-circle" class="w-5 h-5"></i> Nuovo Report</button>
+                <button onclick="nav('companies')" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-cerve-light hover:text-cerve transition-colors" id="menu-companies"><i data-lucide="building-2" class="w-5 h-5"></i> Aziende</button>
+                <button onclick="nav('contacts')" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-cerve-light hover:text-cerve transition-colors" id="menu-contacts"><i data-lucide="users" class="w-5 h-5"></i> Contatti</button>
+            </nav>
+            <div class="p-4 border-t border-gray-100 bg-gray-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-cerve text-white flex items-center justify-center font-bold text-xs">U</div>
+                    <div class="overflow-hidden flex-1">
+                        <p id="user-name-display" class="text-xs font-bold text-gray-800 truncate">Utente</p>
+                        <p id="user-email-display" class="text-[10px] text-gray-500 truncate">user@cerve.it</p>
+                        <button onclick="doLogout()" class="text-xs text-red-500 hover:underline mt-1">Esci</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENT -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <header class="md:hidden bg-white border-b border-gray-200 p-4 pt-safe-top flex justify-between items-center z-20 header-safe-area">
+                <div class="flex items-center gap-2"><img src="Logo CERVE WebApp.jpg" class="w-8 h-8 rounded object-cover"><span class="font-bold text-cerve">Cerve Sales</span></div>
+                <button onclick="doLogout()"><i data-lucide="log-out" class="w-5 h-5 text-gray-500"></i></button>
+            </header>
+
+            <div class="flex-1 overflow-auto p-4 md:p-8 relative bg-slate-50 pb-24 md:pb-8" id="content-area">
+                
+                <!-- DASHBOARD -->
+                <div id="view-dashboard" class="view-section active space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">Panoramica</h2>
+                        <div class="relative w-64 hidden md:block">
+                            <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                            <input id="dash-search" class="input-cerve pl-9" placeholder="Cerca report..." oninput="renderDashboardTable()">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-cerve"><p class="text-xs text-gray-500 font-bold uppercase">Report (60gg)</p><p id="stat-total" class="text-2xl font-bold text-gray-800 mt-1">0</p></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500"><p class="text-xs text-gray-500 font-bold uppercase">Aziende</p><p id="stat-companies" class="text-2xl font-bold text-gray-800 mt-1">0</p></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500"><p class="text-xs text-gray-500 font-bold uppercase">Canali</p><p id="stat-channels" class="text-2xl font-bold text-gray-800 mt-1">0</p></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500"><p class="text-xs text-gray-500 font-bold uppercase">Contatti</p><p id="stat-contacts" class="text-2xl font-bold text-gray-800 mt-1">0</p></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center"><h3 class="font-bold text-gray-700">Attività Recenti</h3><button onclick="nav('new-report')" class="text-xs bg-cerve text-white px-3 py-1 rounded-full md:hidden">+ Nuovo</button></div>
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500 uppercase text-xs"><tr><th class="px-6 py-3">Data</th><th class="px-6 py-3">Azienda</th><th class="px-6 py-3">Agente</th><th class="px-6 py-3">Canale</th><th class="px-6 py-3 text-right"></th></tr></thead><tbody id="dashboard-table" class="divide-y divide-gray-100"></tbody></table></div>
+                    </div>
+                </div>
+
+                <!-- NUOVO REPORT -->
+                <div id="view-new-report" class="view-section max-w-3xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                        <div class="bg-cerve px-6 py-4 flex justify-between items-center text-white"><h2 class="font-bold text-lg">Nuovo Report</h2><p id="form-step-indicator" class="text-xs opacity-80 font-mono">STEP 1/3</p></div>
+                        <div class="p-6">
+                            <!-- STEP 1 -->
+                            <div id="step-1" class="form-step">
+                                <div class="flex justify-end mb-4"><button type="button" onclick="startQR()" class="text-cerve border border-cerve px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><i data-lucide="qr-code" class="w-4 h-4"></i> Scan QR</button></div>
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div class="md:col-span-2"><label class="label-tiny">Nome Azienda</label><input id="inp-company" class="input-cerve font-bold"></div>
+                                    
+                                    <!-- NUOVO CAMPO STATO/REGIONE -->
+                                    <div><label class="label-tiny">Stato/Regione</label><input id="inp-company-state" class="input-cerve"></div>
+                                    <div><label class="label-tiny">Città</label><input id="inp-city" class="input-cerve"></div>
+                                    <div class="md:col-span-2"><label class="label-tiny">Indirizzo</label><input id="inp-address" class="input-cerve"></div>
+                                    
+                                    <!-- NUOVI CAMPI TESTUALI CON GUIDA -->
+                                    <div class="md:col-span-2 space-y-3">
+                                        <div class="relative">
+                                            <label class="label-tiny flex items-center gap-2">Divisione <button type="button" onclick="showInfo('division')" class="text-cerve"><i data-lucide="info" class="w-3 h-3"></i></button></label>
+                                            <input id="inp-division" class="input-cerve" placeholder="Es. VidiVi Italia, B2B...">
+                                        </div>
+                                        <div class="relative">
+                                            <label class="label-tiny flex items-center gap-2">Canale di vendita <button type="button" onclick="showInfo('channel')" class="text-cerve"><i data-lucide="info" class="w-3 h-3"></i></button></label>
+                                            <input id="inp-channel" class="input-cerve" placeholder="Es. GDO, Ho.Re.Ca...">
+                                        </div>
+                                        <div class="relative">
+                                            <label class="label-tiny flex items-center gap-2">Settore <button type="button" onclick="showInfo('sector')" class="text-cerve"><i data-lucide="info" class="w-3 h-3"></i></button></label>
+                                            <input id="inp-sector" class="input-cerve" placeholder="Es. Ristorazione, Bar...">
+                                        </div>
+                                    </div>
+
+                                    <div><label class="label-tiny">Concorrenti Citati</label><input id="inp-competitors" class="input-cerve"></div>
+                                    <div class="select-wrapper"><label class="label-tiny">Sensibilità al Prezzo</label><input list="l-price" id="inp-price" class="input-cerve" placeholder="Seleziona..."><datalist id="l-price"><option value="Alta"></option><option value="Media"></option><option value="Bassa"></option></datalist></div>
+                                    <div class="select-wrapper"><label class="label-tiny">Volumi Attesi</label><input list="l-vol" id="inp-vol" class="input-cerve" placeholder="Seleziona..."><datalist id="l-vol"><option value="Alti"></option><option value="Medi"></option><option value="Bassi"></option></datalist></div>
+                                </div>
+                            </div>
+                            <!-- STEP 2 & 3 (Invariati) -->
+                            <div id="step-2" class="form-step hidden">
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 mb-6">
+                                    <h3 class="text-sm font-bold text-cerve mb-3 flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Aggiungi Persona</h3>
+                                    <div class="grid grid-cols-2 gap-2 mb-3">
+                                        <input id="c-name" class="input-cerve text-sm" placeholder="Nome">
+                                        <input id="c-surname" class="input-cerve text-sm" placeholder="Cognome">
+                                        <input id="c-role" class="input-cerve text-sm col-span-2" placeholder="Ruolo">
+                                        <input id="c-phone" class="input-cerve text-sm" placeholder="Telefono">
+                                        <input id="c-email" class="input-cerve text-sm" placeholder="Email">
+                                    </div>
+                                    <button type="button" onclick="addFormContact()" class="w-full bg-white border border-gray-300 text-gray-700 py-2 rounded text-sm font-bold hover:bg-gray-50">+ Aggiungi alla Lista</button>
+                                </div>
+                                <div id="form-contacts-list" class="space-y-2 mb-6"></div> 
+                                <h3 class="text-sm font-bold text-gray-800 border-b pb-2 mb-4">Dettagli Incontro</h3>
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div><label class="label-tiny">Data</label><input type="date" id="inp-date" class="input-cerve"></div>
+                                    <div class="select-wrapper"><label class="label-tiny">Tipo di Incontro</label><select id="inp-type" class="input-cerve"><option>Visita</option><option>Email</option><option>Fiera</option></select></div>
+                                    <div class="md:col-span-2"><label class="label-tiny">Oggetto</label><input id="inp-subject" class="input-cerve"></div>
+                                    <div><label class="label-tiny">Data Prossimo Incontro</label><input type="date" id="inp-next-date" class="input-cerve"></div>
+                                </div>
+                            </div>
+                            <div id="step-3" class="form-step hidden">
+                                <label class="label-tiny">Note Strategiche</label>
+                                <textarea id="inp-notes" rows="8" class="input-cerve mt-1" placeholder="Scrivi qui..."></textarea>
+                                <div class="mt-4"><label class="label-tiny">Tuo Cognome (Obbligatorio)</label><input id="inp-agent" class="input-cerve bg-yellow-50 font-bold" placeholder="Es. Rossi"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-6 py-4 flex justify-between border-t border-gray-100">
+                            <button type="button" id="btn-form-prev" onclick="prevStep()" class="text-gray-500 hover:text-gray-800 font-medium hidden">Indietro</button>
+                            <button type="button" id="btn-form-next" onclick="nextStep()" class="ml-auto bg-cerve hover:bg-cerve-hover text-white px-6 py-2 rounded-lg font-bold shadow-md transition-all">Avanti</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. AZIENDE & CONTATTI -->
+                <div id="view-companies" class="view-section space-y-4">
+                    <div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Database Aziende</h2><input id="search-comp" class="input-cerve w-64" placeholder="Cerca..."></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+                        <tr>
+                            <th class="px-6 py-3">Azienda</th>
+                            <th class="px-6 py-3">Stato/Regione</th>
+                            <th class="px-6 py-3">Divisione</th>
+                            <th class="px-6 py-3">Canale</th>
+                            <th class="px-6 py-3">Settore</th>
+                            <th class="px-6 py-3 text-right"></th>
+                        </tr>
+                    </thead><tbody id="table-companies" class="divide-y divide-gray-100"></tbody></table></div></div>
+                </div>
+                <div id="view-contacts" class="view-section space-y-4">
+                    <div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-gray-800">Rubrica Contatti</h2><input id="search-cont" class="input-cerve w-64" placeholder="Cerca..."></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500 uppercase text-xs"><tr><th class="px-6 py-3">Nome</th><th class="px-6 py-3">Ruolo</th><th class="px-6 py-3">Azienda</th><th class="px-6 py-3">Contatti</th><th class="px-6 py-3 text-right"></th></tr></thead><tbody id="table-contacts" class="divide-y divide-gray-100"></tbody></table></div></div>
+                </div>
+
+            </div>
+
+            <!-- MOBILE BOTTOM NAV -->
+            <nav class="md:hidden bg-white border-t border-gray-200 flex justify-between items-center px-6 py-2 z-20 pb-safe-bottom">
+                <button onclick="nav('dashboard')" class="mobile-nav-item flex flex-col items-center p-2 text-gray-400 text-[10px] w-16" id="mob-dashboard"><i data-lucide="layout-dashboard" class="w-6 h-6 mb-1"></i>Dash</button>
+                <button onclick="nav('companies')" class="mobile-nav-item flex flex-col items-center p-2 text-gray-400 text-[10px] w-16" id="mob-companies"><i data-lucide="building-2" class="w-6 h-6 mb-1"></i>Aziende</button>
+                <button onclick="nav('new-report')" class="mobile-nav-item flex flex-col items-center p-2 text-gray-400 text-[10px] w-16" id="mob-new-report"><i data-lucide="plus-circle" class="w-6 h-6 mb-1"></i>Nuovo</button>
+                <button onclick="nav('contacts')" class="mobile-nav-item flex flex-col items-center p-2 text-gray-400 text-[10px] w-16" id="mob-contacts"><i data-lucide="users" class="w-6 h-6 mb-1"></i>Contatti</button>
+            </nav>
+        </main>
+    </div>
+
+    <!-- MODALE INFO GUIDA -->
+    <div id="info-modal" class="fixed inset-0 z-[70] bg-black/50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Suggerimenti Compilazione</h3>
+            <p class="text-sm text-gray-600 mb-4">Puoi inserire più valori separandoli con una virgola. Esempio: "Valore 1, Valore 2"</p>
+            <div id="info-content" class="text-sm text-cerve bg-red-50 p-3 rounded mb-4 font-mono"></div>
+            <button onclick="closeInfoModal()" class="w-full bg-gray-200 text-gray-800 py-2 rounded font-bold">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- SLIDE OVER (EDITABLE REPORT) -->
+    <div id="slide-over" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="closeSlideOver()"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl transform transition-transform duration-300 translate-x-full flex flex-col" id="slide-panel">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-cerve text-white pt-safe-top">
+                <h2 class="font-bold text-lg">Modifica Report</h2>
+                <button onclick="closeSlideOver()"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-4" id="slide-content">
+                <input type="hidden" id="edit-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2"><label class="label-tiny">Nome Azienda</label><input id="edit-company" class="input-cerve font-bold"></div>
+                    <div><label class="label-tiny">Stato/Regione</label><input id="edit-state" class="input-cerve"></div>
+                    <div><label class="label-tiny">Città</label><input id="edit-city" class="input-cerve"></div>
+                    <div><label class="label-tiny">Agente</label><input id="edit-agent" class="input-cerve"></div>
+                    <div><label class="label-tiny">Indirizzo</label><input id="edit-address" class="input-cerve"></div>
+                    <!-- Nuovi campi text in edit -->
+                    <div><label class="label-tiny">Divisione</label><input id="edit-division" class="input-cerve"></div>
+                    <div><label class="label-tiny">Canale di vendita</label><input id="edit-channel" class="input-cerve"></div>
+                    <div><label class="label-tiny">Settore</label><input id="edit-sector" class="input-cerve"></div>
+                    <div><label class="label-tiny">Volumi attesi</label><input id="edit-volume" class="input-cerve"></div>
+                    <div><label class="label-tiny">Sensibilità al prezzo</label><input id="edit-price" class="input-cerve"></div>
+                    <div><label class="label-tiny">Concorrenti citati</label><input id="edit-competitors" class="input-cerve"></div>
+                    <div class="col-span-2"><label class="label-tiny">Contatti (Elenco lettura)</label><div id="edit-contacts-read" class="text-sm bg-gray-50 p-2 rounded text-gray-600"></div></div>
+                    <div class="col-span-2"><button onclick="addNewContactToReport()" class="text-xs bg-cerve text-white px-3 py-1 rounded flex items-center gap-1"><i data-lucide="user-plus" class="w-3 h-3"></i> Aggiungi Contatto</button></div>
+                </div>
+                <div><label class="label-tiny">Note</label><textarea id="edit-notes" rows="6" class="input-cerve"></textarea></div>
+                <button onclick="saveReportChanges()" class="w-full bg-cerve text-white py-3 rounded-lg font-bold shadow-md hover:bg-cerve-hover">Salva Modifiche</button>
+                <div class="text-center pt-2"><button onclick="deleteReport()" class="text-red-500 text-xs underline">Elimina Report</button></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODALE EDIT CONTATTO -->
+    <div id="contact-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeContactModal()"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl transform transition-transform duration-300 translate-x-full flex flex-col" id="contact-modal-panel">
+             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-cerve text-white pt-safe-top">
+                <h2 class="font-bold text-lg" id="contact-modal-title">Modifica Contatto</h2>
+                <button onclick="closeContactModal()"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="flex-1 p-6 space-y-4">
+                <input type="hidden" id="c-edit-id"><input type="hidden" id="c-edit-idx">
+                <div><label class="label-tiny">Nome</label><input id="ce-name" class="input-cerve"></div>
+                <div><label class="label-tiny">Cognome</label><input id="ce-surname" class="input-cerve"></div>
+                <div><label class="label-tiny">Ruolo</label><input id="ce-role" class="input-cerve"></div>
+                <div><label class="label-tiny">Email</label><input id="ce-email" class="input-cerve"></div>
+                <div><label class="label-tiny">Telefono</label><input id="ce-phone" class="input-cerve"></div>
+                <button onclick="saveContact()" class="w-full bg-cerve text-white py-2 rounded-lg font-bold shadow-md mt-4">Salva Contatto</button>
+                <div class="text-center mt-2"><button onclick="deleteContactFromModal()" class="text-red-500 text-xs underline">Elimina Contatto</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR MODAL -->
+    <div id="qr-modal" class="fixed inset-0 z-[60] bg-black/90 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-sm p-4 relative">
+            <button onclick="stopQR()" class="absolute top-2 right-2 text-3xl">&times;</button><h3 class="text-center font-bold mb-4">Inquadra QR Code</h3><div id="reader" class="rounded-lg overflow-hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        let allReports = [], currentStep = 1, formContacts = [];
+        
+        // Suggerimenti per i modali info
+        const suggestions = {
+            division: "VidiVi Italia, VidiVi Estero, Casalingo Italia, Casalingo Estero, B2B Italia, B2B Estero",
+            channel: "GDS, GDO, Dettaglio, Promozioni, Grossista, Ho.Re.Ca., E-commerce",
+            sector: "Vario, Soft Drinks, Cantina, Birreria, Bar, Distilleria, Gelateria"
+        };
+
+        function initApp() {
+            lucide.createIcons();
+            const q = window.query(window.collection(window.db, "reports"), window.orderBy("timestamp", "desc"));
+            window.onSnapshot(q, (snapshot) => {
+                allReports = [];
+                snapshot.forEach(doc => allReports.push({ id: doc.id, ...doc.data() }));
+                refreshCurrentView();
+            });
+            nav('dashboard');
+        }
+
+        window.nav = (view) => {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${view}`).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-cerve-light', 'text-cerve'));
+            const btn = document.getElementById(`menu-${view}`);
+            if(btn && view !== 'new-report') btn.classList.add('bg-cerve-light', 'text-cerve');
+            document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active', 'text-cerve'));
+            const mobBtn = document.getElementById(`mob-${view}`);
+            if(mobBtn) mobBtn.classList.add('active', 'text-cerve');
+            if(view === 'new-report') resetForm();
+            refreshCurrentView();
+        };
+
+        function refreshCurrentView() {
+            renderDashboardTable(); renderStats(); renderCompaniesTable(); renderContactsTable();
+        }
+
+        function renderDashboardTable() {
+            const tbody = document.getElementById('dashboard-table');
+            const searchVal = document.getElementById('dash-search')?.value.toLowerCase() || '';
+            const filtered = allReports.filter(r => 
+                (r.companyName && r.companyName.toLowerCase().includes(searchVal)) || 
+                (r.agentName && r.agentName.toLowerCase().includes(searchVal))
+            );
+            tbody.innerHTML = filtered.slice(0, 10).map(r => `
+                <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 cursor-pointer" onclick="openDetail('${r.id}')">
+                    <td class="px-6 py-3 font-mono text-gray-500">${new Date(r.timestamp?.seconds*1000).toLocaleDateString()}</td>
+                    <td class="px-6 py-3 font-bold text-gray-800">${r.companyName}</td>
+                    <td class="px-6 py-3 text-gray-600">${r.agentName}</td>
+                    <td class="px-6 py-3"><span class="bg-red-50 text-cerve px-2 py-1 rounded text-xs font-bold">${r.channel?.split(';')[0] || '-'}</span></td>
+                    <td class="px-6 py-3 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i></td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderStats() {
+            document.getElementById('stat-total').textContent = allReports.length;
+            document.getElementById('stat-companies').textContent = new Set(allReports.map(r => r.companyName)).size;
+            document.getElementById('stat-channels').textContent = new Set(allReports.map(r => r.channel).filter(x=>x)).size;
+            let c = 0; allReports.forEach(r => { if(r.contacts) c += r.contacts.length; });
+            document.getElementById('stat-contacts').textContent = c;
+        }
+
+        function renderCompaniesTable() {
+            const term = document.getElementById('search-comp').value.toLowerCase();
+            const map = new Map();
+            allReports.forEach(r => { if(!map.has(r.companyName)) map.set(r.companyName, r); });
+            const list = Array.from(map.values()).filter(r => 
+                r.companyName.toLowerCase().includes(term) ||
+                (r.companyCity && r.companyCity.toLowerCase().includes(term)) ||
+                (r.companyState && r.companyState.toLowerCase().includes(term)) || 
+                (r.division && r.division.toLowerCase().includes(term)) ||
+                (r.channel && r.channel.toLowerCase().includes(term)) ||
+                (r.sector && r.sector.toLowerCase().includes(term))
+            );
+            document.getElementById('table-companies').innerHTML = list.map(r => `
+                <tr class="hover:bg-gray-50 border-b border-gray-100 cursor-pointer" onclick="openDetail('${r.id}')">
+                    <td class="px-6 py-3 font-bold text-gray-800">${r.companyName}</td>
+                    <td class="px-6 py-3 text-gray-600">${r.companyState || '-'}</td>
+                    <td class="px-6 py-3 text-gray-600">${r.division || '-'}</td>
+                    <td class="px-6 py-3 text-gray-600">${r.channel || '-'}</td>
+                    <td class="px-6 py-3 text-gray-600">${r.sector || '-'}</td>
+                    <td class="px-6 py-3 text-right"><button class="text-cerve text-xs font-bold border border-cerve px-2 py-1 rounded hover:bg-cerve hover:text-white transition">Vedi</button></td>
+                </tr>
+            `).join('');
+        }
+        document.getElementById('search-comp').addEventListener('input', renderCompaniesTable);
+
+        function renderContactsTable() {
+            const term = document.getElementById('search-cont').value.toLowerCase();
+            let contacts = [];
+            allReports.forEach(r => { if(r.contacts) r.contacts.forEach((c, idx) => contacts.push({...c, company: r.companyName, rId: r.id, idx: idx})); });
+            const list = contacts.filter(c => 
+                (c.name && c.name.toLowerCase().includes(term)) || 
+                (c.surname && c.surname.toLowerCase().includes(term)) ||
+                (c.role && c.role.toLowerCase().includes(term)) ||
+                (c.company && c.company.toLowerCase().includes(term))
+            );
+            document.getElementById('table-contacts').innerHTML = list.map(c => `
+                <tr class="hover:bg-gray-50 border-b border-gray-100">
+                    <td class="px-6 py-3 font-medium text-gray-800">${c.name} ${c.surname}</td>
+                    <td class="px-6 py-3 text-gray-500 text-xs uppercase">${c.role || '-'}</td>
+                    <td class="px-6 py-3 text-cerve font-bold">${c.company}</td>
+                    <td class="px-6 py-3 text-xs text-gray-500">${c.email || ''}<br>${c.phone || ''}</td>
+                    <td class="px-6 py-3 text-right"><button onclick="openContactEdit('${c.rId}', ${c.idx})" class="text-gray-400 hover:text-cerve"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+        document.getElementById('search-cont').addEventListener('input', renderContactsTable);
+
+        // --- FORM LOGIC (Simplified & Fixed) ---
+        window.showInfo = (key) => {
+            document.getElementById('info-content').textContent = suggestions[key];
+            document.getElementById('info-modal').classList.remove('hidden');
+        };
+        window.closeInfoModal = () => document.getElementById('info-modal').classList.add('hidden');
+
+        window.resetForm = () => { currentStep = 1; formContacts = []; document.querySelectorAll('input, textarea').forEach(i => i.value=''); updateFormStep(); renderFormContacts(); };
+        window.nextStep = () => { if(currentStep === 1 && !document.getElementById('inp-company').value) return alert("Inserisci Nome Azienda"); if(currentStep < 3) { currentStep++; updateFormStep(); } else submitForm(); };
+        window.prevStep = () => { if(currentStep > 1) { currentStep--; updateFormStep(); } };
+        function updateFormStep() {
+            document.querySelectorAll('.form-step').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`step-${currentStep}`).classList.remove('hidden');
+            document.getElementById('form-step-indicator').textContent = `STEP ${currentStep}/3`;
+            document.getElementById('btn-form-prev').classList.toggle('hidden', currentStep === 1);
+            const btnNext = document.getElementById('btn-form-next');
+            if(currentStep === 3) { btnNext.textContent = "Salva Report"; btnNext.classList.replace('bg-cerve', 'bg-green-600'); } else { btnNext.textContent = "Avanti"; btnNext.classList.replace('bg-green-600', 'bg-cerve'); }
+        }
+        window.addFormContact = () => {
+            const n=document.getElementById('c-name').value, s=document.getElementById('c-surname').value;
+            if(!n && !s) return alert("Inserisci nome");
+            formContacts.push({ name:n, surname:s, role:document.getElementById('c-role').value, phone:document.getElementById('c-phone').value, email:document.getElementById('c-email').value });
+            renderFormContacts();
+            ['c-name','c-surname','c-role','c-phone','c-email'].forEach(i=>document.getElementById(i).value='');
+        };
+        function renderFormContacts() { document.getElementById('form-contacts-list').innerHTML = formContacts.map((c,i) => `<div class="flex justify-between items-center bg-gray-50 p-2 rounded text-sm border border-gray-200"><span>${c.name} ${c.surname}</span><button onclick="formContacts.splice(${i},1);renderFormContacts()" class="text-red-500 font-bold">&times;</button></div>`).join(''); }
+
+        async function submitForm() {
+            const agent = document.getElementById('inp-agent').value;
+            if(!agent) return alert("Inserisci il tuo Cognome");
+            const data = {
+                companyName: document.getElementById('inp-company').value,
+                companyState: document.getElementById('inp-company-state').value, 
+                companyCity: document.getElementById('inp-city').value,
+                companyAddress: document.getElementById('inp-address').value,
+                // Simple Text Inputs for Stability
+                division: document.getElementById('inp-division').value,
+                channel: document.getElementById('inp-channel').value,
+                sector: document.getElementById('inp-sector').value,
+                competitors: document.getElementById('inp-competitors').value, 
+                priceSensitivity: document.getElementById('inp-price').value, 
+                expectedVolume: document.getElementById('inp-vol').value, 
+                meetingDate: document.getElementById('inp-date').value,
+                nextMeetingDate: document.getElementById('inp-next-date').value, 
+                meetingType: document.getElementById('inp-type').value,
+                meetingSubject: document.getElementById('inp-subject').value,
+                notes: document.getElementById('inp-notes').value,
+                agentName: agent,
+                contacts: formContacts,
+                timestamp: window.serverTimestamp()
+            };
+            try { await window.addDoc(window.collection(window.db, "reports"), data); alert("Report salvato!"); nav('dashboard'); } catch(e) { alert("Errore: " + e.message); }
+        }
+
+        // --- QR CODE ---
+        let html5QrCode;
+        window.startQR = () => {
+            document.getElementById('qr-modal').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10 }, (decodedText) => { 
+                if (decodedText.startsWith("BEGIN:VCARD")) {
+                     alert("VCard rilevata: Estrazione dati...");
+                     const lines = decodedText.split('\n');
+                     const orgLine = lines.find(l => l.startsWith('ORG:'));
+                     if(orgLine) document.getElementById('inp-company').value = orgLine.split(':')[1].trim().replace(/;/g, '');
+                     document.getElementById('inp-notes').value += "\n[Dati da QR]:\n" + decodedText;
+                } else if (decodedText.startsWith("{")) {
+                     try {
+                         const json = JSON.parse(decodedText);
+                         if(json.company) document.getElementById('inp-company').value = json.company;
+                         if(json.city) document.getElementById('inp-city').value = json.city;
+                         if(json.address) document.getElementById('inp-address').value = json.address;
+                         if(json.state) document.getElementById('inp-company-state').value = json.state;
+                     } catch(e) { document.getElementById('inp-notes').value += "\n[Dati da QR - JSON Error]: " + decodedText; }
+                } else {
+                     if (decodedText.length < 50) document.getElementById('inp-company').value = decodedText;
+                     else document.getElementById('inp-notes').value += "\n[Dati da QR]: " + decodedText;
+                }
+                stopQR(); 
+            });
+        };
+        window.stopQR = () => { if(html5QrCode) html5QrCode.stop(); document.getElementById('qr-modal').classList.add('hidden'); };
+
+        // --- DETAIL MODAL ---
+        window.openDetail = (id) => {
+            const r = allReports.find(x => x.id === id); if(!r) return;
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-company').value = r.companyName || '';
+            document.getElementById('edit-city').value = r.companyCity || '';
+            document.getElementById('edit-state').value = r.companyState || '';
+            document.getElementById('edit-agent').value = r.agentName || '';
+            document.getElementById('edit-address').value = r.companyAddress || '';
+            document.getElementById('edit-division').value = r.division || '';
+            document.getElementById('edit-channel').value = r.channel || '';
+            document.getElementById('edit-sector').value = r.sector || '';
+            document.getElementById('edit-volume').value = r.expectedVolume || '';
+            document.getElementById('edit-price').value = r.priceSensitivity || '';
+            document.getElementById('edit-competitors').value = r.competitors || '';
+            document.getElementById('edit-notes').value = r.notes || '';
+            document.getElementById('edit-contacts-read').innerHTML = (r.contacts||[]).map(c=>`${c.name} ${c.surname}`).join(', ');
+            document.getElementById('slide-over').classList.remove('hidden');
+            setTimeout(() => document.getElementById('slide-panel').classList.remove('translate-x-full'), 10);
+        };
+        window.closeSlideOver = () => { document.getElementById('slide-panel').classList.add('translate-x-full'); setTimeout(() => document.getElementById('slide-over').classList.add('hidden'), 300); };
+        window.saveReportChanges = async () => {
+            const id = document.getElementById('edit-id').value;
+            const updates = {
+                companyName: document.getElementById('edit-company').value,
+                companyCity: document.getElementById('edit-city').value,
+                companyState: document.getElementById('edit-state').value, 
+                agentName: document.getElementById('edit-agent').value,
+                companyAddress: document.getElementById('edit-address').value,
+                division: document.getElementById('edit-division').value,
+                channel: document.getElementById('edit-channel').value,
+                sector: document.getElementById('edit-sector').value,
+                expectedVolume: document.getElementById('edit-volume').value,
+                priceSensitivity: document.getElementById('edit-price').value,
+                competitors: document.getElementById('edit-competitors').value,
+                notes: document.getElementById('edit-notes').value
+            };
+            try { await window.updateDoc(window.doc(window.db, "reports", id), updates); alert("Modifiche salvate!"); closeSlideOver(); } 
+            catch(e) { alert("Errore: " + e.message); }
+        };
+        window.deleteReport = async () => { if(confirm("Eliminare?")) { try { await window.deleteDoc(window.doc(window.db, "reports", document.getElementById('edit-id').value)); initApp(); closeSlideOver(); } catch(e) { alert("Errore: " + e.message); } } };
+        
+        // --- ADD CONTACT TO EXISTING REPORT ---
+        window.addNewContactToReport = () => {
+            const rId = document.getElementById('edit-id').value;
+            const report = allReports.find(x => x.id === rId);
+            if (!report) return;
+            document.getElementById('c-edit-id').value = rId;
+            document.getElementById('c-edit-idx').value = "NEW_TO_REPORT"; 
+            document.getElementById('contact-modal-title').textContent = "Aggiungi Contatto a " + report.companyName;
+            ['ce-name', 'ce-surname', 'ce-role', 'ce-email', 'ce-phone'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('contact-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('contact-modal-panel').classList.remove('translate-x-full'), 10);
+        };
+
+        // --- CONTACT MODAL ---
+        window.openContactEdit = (rId, idx) => {
+            const r = allReports.find(x => x.id === rId); if(!r || !r.contacts[idx]) return;
+            const c = r.contacts[idx];
+            document.getElementById('contact-modal-title').textContent = "Modifica Contatto";
+            document.getElementById('c-edit-id').value = rId; document.getElementById('c-edit-idx').value = idx;
+            document.getElementById('ce-name').value = c.name || ''; document.getElementById('ce-surname').value = c.surname || '';
+            document.getElementById('ce-role').value = c.role || ''; document.getElementById('ce-email').value = c.email || '';
+            document.getElementById('ce-phone').value = c.phone || '';
+            document.getElementById('contact-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('contact-modal-panel').classList.remove('translate-x-full'), 10);
+        };
+        window.closeContactModal = () => { document.getElementById('contact-modal-panel').classList.add('translate-x-full'); setTimeout(() => document.getElementById('contact-modal').classList.add('hidden'), 300); };
+        window.saveContact = async () => {
+            const rId = document.getElementById('c-edit-id').value, idx = document.getElementById('c-edit-idx').value, r = allReports.find(x => x.id === rId);
+            if(r) {
+                const contactData = { name: document.getElementById('ce-name').value, surname: document.getElementById('ce-surname').value, role: document.getElementById('ce-role').value, email: document.getElementById('ce-email').value, phone: document.getElementById('ce-phone').value };
+                if (idx === "NEW_TO_REPORT") { if (!r.contacts) r.contacts = []; r.contacts.push(contactData); } else { r.contacts[idx] = contactData; }
+                await window.updateDoc(window.doc(window.db, "reports", rId), { contacts: r.contacts });
+                alert(idx === "NEW_TO_REPORT" ? "Contatto aggiunto!" : "Contatto aggiornato!");
+                closeContactModal();
+                if (!document.getElementById('slide-over').classList.contains('hidden')) { document.getElementById('edit-contacts-read').innerHTML = (r.contacts||[]).map(c=>`${c.name} ${c.surname}`).join(', '); }
+            }
+        };
+        window.deleteContactFromModal = async () => {
+             const rId = document.getElementById('c-edit-id').value, idx = document.getElementById('c-edit-idx').value;
+             if (idx === "NEW_TO_REPORT") { closeContactModal(); return; }
+             if(confirm("Eliminare contatto?")) {
+                  const r = allReports.find(x => x.id === rId);
+                  if(r) { r.contacts.splice(idx, 1); await window.updateDoc(window.doc(window.db, "reports", rId), { contacts: r.contacts }); alert("Eliminato."); closeContactModal(); }
+             }
+        };
+    </script>
+</body>
+</html>
