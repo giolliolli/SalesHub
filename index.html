@@ -23,21 +23,10 @@
             theme: {
                 extend: {
                     colors: {
-                        cerve: {
-                            DEFAULT: '#b01b30', // Rosso Cerve
-                            hover: '#8a1525',
-                            light: '#fdf2f2',
-                            text: '#b01b30'
-                        }
+                        cerve: { DEFAULT: '#b01b30', hover: '#8a1525', light: '#fdf2f2', text: '#b01b30' }
                     },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    spacing: {
-                        'safe-top': 'env(safe-area-inset-top)',
-                        'safe-bottom': 'env(safe-area-inset-bottom)',
-                        'nav-height': '60px'
-                    }
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    spacing: { 'safe-top': 'env(safe-area-inset-top)', 'safe-bottom': 'env(safe-area-inset-bottom)' }
                 }
             }
         }
@@ -45,48 +34,21 @@
 
     <style>
         body { background-color: #f8fafc; color: #334155; }
-        
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* Transitions */
         .view-section { display: none; opacity: 0; transition: opacity 0.3s ease; }
         .view-section.active { display: block; opacity: 1; }
-        
-        /* Form Elements overrides */
-        .input-cerve {
-            width: 100%; padding: 0.5rem 1rem; border-radius: 0.5rem;
-            border: 1px solid #e2e8f0; background-color: white;
-            transition: all 0.2s; font-size: 0.875rem;
-        }
-        .input-cerve:focus {
-            outline: none; border-color: #b01b30; box-shadow: 0 0 0 3px rgba(176, 27, 48, 0.1);
-        }
+        .input-cerve { width: 100%; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background-color: white; transition: all 0.2s; font-size: 0.875rem; }
+        .input-cerve:focus { outline: none; border-color: #b01b30; box-shadow: 0 0 0 3px rgba(176, 27, 48, 0.1); }
         .label-tiny { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 0.25rem; }
-
-        /* Checkbox Cerve Style */
-        .checkbox-item input[type="checkbox"] {
-            accent-color: #b01b30; width: 1.1rem; height: 1.1rem; cursor: pointer;
-        }
-
-        /* Mobile Adjustments */
+        .checkbox-item input[type="checkbox"] { accent-color: #b01b30; width: 1.1rem; height: 1.1rem; cursor: pointer; }
         .mobile-nav-item.active { color: #b01b30; }
-        .mobile-nav-item.active i { stroke: #b01b30; }
-        
-        /* Accordion Animation */
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
         .rotate-180 { transform: rotate(180deg); }
-
-        /* Select Wrapper Style */
         .select-wrapper { position: relative; }
         .select-wrapper::after { content: ''; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #6b7280; pointer-events: none; }
-        
-        /* Padding Safe Area per Mobile Header */
         .header-safe-area { padding-top: env(safe-area-inset-top); }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -112,7 +74,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Esposizione globale
+        // Global Exports
         window.db = db;
         window.auth = auth;
         window.collection = collection;
@@ -127,12 +89,10 @@
         window.getDocs = getDocs;
         window.where = where;
 
-        // Auth Listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('login-view').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
-                // Estrae Nome Utente dalla mail
                 const emailName = user.email.split('@')[0].replace('.', ' ');
                 const formattedName = emailName.replace(/\b\w/g, l => l.toUpperCase());
                 document.getElementById('user-name-display').textContent = formattedName;
@@ -197,7 +157,7 @@
             </div>
         </aside>
 
-        <!-- MAIN CONTENT -->
+        <!-- CONTENT -->
         <main class="flex-1 flex flex-col h-full overflow-hidden relative">
             <header class="md:hidden bg-white border-b border-gray-200 p-4 pt-safe-top flex justify-between items-center z-20 header-safe-area">
                 <div class="flex items-center gap-2"><img src="Logo CERVE WebApp.jpg" class="w-8 h-8 rounded object-cover"><span class="font-bold text-cerve">Cerve Sales</span></div>
@@ -229,65 +189,26 @@
                     </div>
                 </div>
 
-                <!-- VISIONE STRATEGICA (ANALYTICS) -->
+                <!-- VISIONE STRATEGICA -->
                 <div id="view-visione" class="view-section space-y-6">
                     <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                         <h2 class="text-2xl font-bold text-gray-800">Visione Strategica <span class="text-xs font-normal text-gray-500 ml-2">(Clicca i grafici per filtrare)</span></h2>
-                        
                         <div class="flex items-center gap-3 w-full md:w-auto">
-                             <div class="relative flex-1 md:w-64">
-                                <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
-                                <input id="visione-search" class="input-cerve pl-9 py-2" placeholder="Filtra grafici..." oninput="updateVisioneCharts()">
-                            </div>
-                            <!-- FILTRO ATTIVO -->
-                            <div id="active-filter-badge" class="hidden items-center bg-cerve-light text-cerve px-3 py-2 rounded-lg text-sm border border-cerve shadow-sm">
-                                <span class="font-bold mr-2 whitespace-nowrap" id="active-filter-text">Filtro</span>
-                                <button onclick="resetVisioneFilter()" class="hover:text-red-800"><i data-lucide="x" class="w-4 h-4"></i></button>
-                            </div>
+                             <div class="relative flex-1 md:w-64"><i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i><input id="visione-search" class="input-cerve pl-9 py-2" placeholder="Filtra grafici..." oninput="updateVisioneCharts()"></div>
+                             <div id="active-filter-badge" class="hidden items-center bg-cerve-light text-cerve px-3 py-2 rounded-lg text-sm border border-cerve shadow-sm"><span class="font-bold mr-2 whitespace-nowrap" id="active-filter-text">Filtro</span><button onclick="resetVisioneFilter()" class="hover:text-red-800"><i data-lucide="x" class="w-4 h-4"></i></button></div>
                         </div>
                     </div>
                     
-                    <!-- Grafico Performance Agenti -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
-                        <button onclick="expandChart('chart-agents', 'Performance Commerciali')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button>
-                        <h3 class="font-bold text-gray-700 mb-4">Performance Commerciali</h3>
-                        <div class="h-64"><canvas id="chart-agents"></canvas></div>
-                    </div>
-
-                    <!-- Griglia Analisi Mercato -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative"><button onclick="expandChart('chart-agents', 'Performance Commerciali')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button><h3 class="font-bold text-gray-700 mb-4">Performance Commerciali</h3><div class="h-64"><canvas id="chart-agents"></canvas></div></div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
-                            <button onclick="expandChart('chart-channels', 'Mix Canali')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button>
-                            <h3 class="font-bold text-gray-700 mb-4">Mix Canali di Vendita</h3>
-                            <div class="h-64"><canvas id="chart-channels"></canvas></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
-                            <button onclick="expandChart('chart-sectors', 'Distribuzione Settoriale')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button>
-                            <h3 class="font-bold text-gray-700 mb-4">Distribuzione Settoriale</h3>
-                            <div class="h-64"><canvas id="chart-sectors"></canvas></div>
-                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative"><button onclick="expandChart('chart-channels', 'Mix Canali')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button><h3 class="font-bold text-gray-700 mb-4">Mix Canali di Vendita</h3><div class="h-64"><canvas id="chart-channels"></canvas></div></div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative"><button onclick="expandChart('chart-sectors', 'Distribuzione Settoriale')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button><h3 class="font-bold text-gray-700 mb-4">Distribuzione Settoriale</h3><div class="h-64"><canvas id="chart-sectors"></canvas></div></div>
                     </div>
-
-                    <!-- Copertura e Qualità -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
-                            <button onclick="expandChart('chart-states', 'Copertura Geografica')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button>
-                            <h3 class="font-bold text-gray-700 mb-4" id="title-states">Copertura Geografica</h3>
-                            <div class="h-64"><canvas id="chart-states"></canvas></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
-                            <button onclick="expandChart('chart-quality', 'Qualità Lead')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button>
-                            <h3 class="font-bold text-gray-700 mb-4">Qualità Lead (Volumi vs Prezzo)</h3>
-                            <div class="h-64"><canvas id="chart-quality"></canvas></div>
-                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative"><button onclick="expandChart('chart-states', 'Copertura Geografica')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button><h3 class="font-bold text-gray-700 mb-4" id="title-states">Copertura Geografica</h3><div class="h-64"><canvas id="chart-states"></canvas></div></div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative"><button onclick="expandChart('chart-quality', 'Qualità Lead')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button><h3 class="font-bold text-gray-700 mb-4">Qualità Lead (Volumi vs Prezzo)</h3><div class="h-64"><canvas id="chart-quality"></canvas></div></div>
                     </div>
-
-                    <!-- Competitors -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
-                        <button onclick="expandChart('chart-competitors', 'Presenza Competitors')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button>
-                        <h3 class="font-bold text-gray-700 mb-4">Presenza Competitors</h3>
-                        <div class="h-64"><canvas id="chart-competitors"></canvas></div>
-                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative"><button onclick="expandChart('chart-competitors', 'Presenza Competitors')" class="absolute top-4 right-4 text-gray-400 hover:text-cerve"><i data-lucide="maximize-2" class="w-5 h-5"></i></button><h3 class="font-bold text-gray-700 mb-4">Presenza Competitors</h3><div class="h-64"><canvas id="chart-competitors"></canvas></div></div>
                 </div>
 
                 <!-- NUOVO REPORT -->
@@ -344,9 +265,23 @@
                                 <h3 class="text-sm font-bold text-gray-800 border-b pb-2 mb-4">Dettagli Incontro</h3>
                                 <div class="grid md:grid-cols-2 gap-4">
                                     <div><label class="label-tiny">Data</label><input type="date" id="inp-date" class="input-cerve"></div>
-                                    <div class="select-wrapper"><label class="label-tiny">Tipo di Incontro</label><select id="inp-type" class="input-cerve"><option>Visita</option><option>Email</option><option>Fiera</option><option>Videocall</option></select></div>
+                                    <div class="select-wrapper">
+                                        <label class="label-tiny">Tipo di Incontro</label>
+                                        <select id="inp-type" class="input-cerve" onchange="toggleFieraField('inp-type', 'container-fiera')">
+                                            <option>Visita</option><option>Email</option><option>Videocall</option><option>Fiera</option>
+                                        </select>
+                                    </div>
                                     <div class="md:col-span-2"><label class="label-tiny">Oggetto</label><input id="inp-subject" class="input-cerve"></div>
                                     <div><label class="label-tiny">Data Prossimo Incontro</label><input type="date" id="inp-next-date" class="input-cerve"></div>
+                                    
+                                    <!-- NUOVO CAMPO FIERA DINAMICO -->
+                                    <div id="container-fiera" class="hidden select-wrapper">
+                                        <label class="label-tiny">Quale Fiera?</label>
+                                        <select id="inp-fiera" class="input-cerve">
+                                            <option value="">Seleziona...</option>
+                                            <option>SIGEP</option><option>PCD Paris</option><option>Ambiente Frankfurt</option><option>Vinitaly</option><option>LuxePack</option><option>SIMEI</option><option>BrauBeviale</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div id="step-3" class="form-step hidden">
@@ -395,7 +330,7 @@
     </div>
 
     <!-- MODALE INFO GUIDA -->
-    <div id="info-modal" class="fixed inset-0 z-[70] bg-black/50 hidden flex items-center justify-center p-4">
+    <div id="info-modal" class="fixed inset-0 z-[100] bg-black/50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl p-6 w-full max-w-sm">
             <h3 class="text-lg font-bold text-gray-800 mb-2">Suggerimenti</h3>
             <p class="text-sm text-gray-600 mb-4">Usa la virgola per separare più valori.</p>
@@ -437,6 +372,19 @@
                     <div><label class="label-tiny">Volumi attesi</label><input id="edit-volume" class="input-cerve"></div>
                     <div><label class="label-tiny">Sensibilità al prezzo</label><input id="edit-price" class="input-cerve"></div>
                     <div><label class="label-tiny">Concorrenti citati</label><input id="edit-competitors" class="input-cerve"></div>
+                    <div class="col-span-2">
+                        <label class="label-tiny">Tipo di Incontro</label>
+                        <select id="edit-meeting-type" class="input-cerve" onchange="toggleFieraField('edit-meeting-type', 'edit-container-fiera')">
+                             <option>Visita</option><option>Email</option><option>Videocall</option><option>Fiera</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2 hidden select-wrapper" id="edit-container-fiera">
+                        <label class="label-tiny">Quale Fiera?</label>
+                        <select id="edit-fiera" class="input-cerve">
+                            <option value="">Seleziona...</option>
+                            <option>SIGEP</option><option>PCD Paris</option><option>Ambiente Frankfurt</option><option>Vinitaly</option><option>LuxePack</option><option>SIMEI</option><option>BrauBeviale</option>
+                        </select>
+                    </div>
                     <div class="col-span-2"><label class="label-tiny">Contatti (Elenco lettura)</label><div id="edit-contacts-read" class="text-sm bg-gray-50 p-2 rounded text-gray-600"></div></div>
                     <div class="col-span-2"><button onclick="addNewContactToReport()" class="text-xs bg-cerve text-white px-3 py-1 rounded flex items-center gap-1"><i data-lucide="user-plus" class="w-3 h-3"></i> Aggiungi Contatto</button></div>
                 </div>
@@ -482,7 +430,7 @@
         const suggestions = {
             division: "VidiVi Italia, VidiVi Estero, Casalingo Italia, Casalingo Estero, B2B Italia, B2B Estero",
             channel: "GDS, GDO, Dettaglio, Promozioni, Grossista, Ho.Re.Ca., E-commerce",
-            sector: "Vario, Soft Drinks, Cantina, Birreria, Bar, Distilleria, Gelateria"
+            sector: "Vario, Soft Drinks, Cantina, Birreria, Bar, Distilleria, Gelateria, Torrefazione"
         };
 
         function initApp() {
@@ -595,34 +543,19 @@
                  applyVisioneFilter(r => r.sector && r.sector.includes(sectorName), sectorName, 'sector');
             });
             
-            // Geographic Chart (Drill-Down Logic)
-            // Determine Geo Data
-            let geoData = {};
-            let geoLabel = 'Top Regioni';
-            let geoHandler = (label) => applyVisioneFilter(r => r.companyState === label, label, 'state');
-
-            // Check if we are currently filtering by a specific State
-            const currentFilterIsState = activeFilter && activeFilter.type === 'state';
-
-            if (currentFilterIsState) {
-                // We are inside a state, show Cities for that state (from ALL reports matching filter, which is already set)
-                // Actually filteredData already has the state filter applied.
-                geoData = countBy('companyCity');
-                geoLabel = `Città in ${activeFilter.label}`;
-                geoHandler = null; // Drill down ends here (or could reset)
-                document.getElementById('title-states').textContent = `Città in ${activeFilter.label}`;
+            // Geo Logic
+            let geoData = {}, geoLabel = 'Top Regioni', geoHandler = (label) => applyVisioneFilter(r => r.companyState === label, label, 'state');
+            if (activeFilter && activeFilter.type === 'state') {
+                geoData = countBy('companyCity'); geoLabel = `Città in ${activeFilter.label}`; geoHandler = null;
+                document.getElementById('title-states').textContent = geoLabel;
             } else {
-                // Show States (Top 10)
-                const s = countBy('companyState');
-                const sorted = Object.entries(s).sort((a,b)=>b[1]-a[1]).slice(0,10);
+                const s = countBy('companyState'); const sorted = Object.entries(s).sort((a,b)=>b[1]-a[1]).slice(0,10);
                 geoData = Object.fromEntries(sorted);
                 document.getElementById('title-states').textContent = "Copertura Geografica";
             }
-
             createChart('chart-states', 'bar', geoData, geoLabel, geoHandler);
 
-
-            // Quality Lead
+            // Quality Lead Matrix (Strategic Sort)
             const qualityKeys = ["Bassa/Alti", "Bassa/Medi", "Media/Alti", "Media/Medi", "Bassa/Bassi", "Media/Bassi", "Alta/Alti", "Alta/Medi", "Alta/Bassi"];
             const qualityData = {};
             qualityKeys.forEach(k => qualityData[k] = 0);
@@ -649,7 +582,6 @@
         window.resetVisioneFilter = () => {
             activeFilter = null;
             document.getElementById('visione-search').value = '';
-            // Reset title of geo chart manually just in case
             document.getElementById('title-states').textContent = "Copertura Geografica";
             updateVisioneCharts();
         };
@@ -713,13 +645,10 @@
         }
         document.getElementById('search-cont').addEventListener('input', renderContactsTable);
 
-        // --- FORM LOGIC ---
-        function renderCheckboxes(id, items, name) {
-            const div = document.getElementById(id);
-            div.innerHTML = items.map(i => `<div class="checkbox-item flex gap-2 items-center"><input type="checkbox" value="${i}" name="${name}"><label class="text-sm text-gray-700">${i}</label></div>`).join('');
-        }
-        window.toggleAcc = (id) => { const el=document.getElementById(id), i=document.getElementById('icon-'+id); if(el.style.maxHeight){el.style.maxHeight=null;i.classList.remove('rotate-180')}else{el.style.maxHeight=el.scrollHeight+"px";i.classList.add('rotate-180')} };
-        window.resetForm = () => { currentStep = 1; formContacts = []; document.querySelectorAll('input, textarea').forEach(i => i.value=''); document.querySelectorAll('input[type="checkbox"]').forEach(c=>c.checked=false); updateFormStep(); renderFormContacts(); };
+        // --- FORM ---
+        window.showInfo = (k) => { document.getElementById('info-content').textContent = suggestions[k]; document.getElementById('info-modal').classList.remove('hidden'); };
+        window.closeInfoModal = () => document.getElementById('info-modal').classList.add('hidden');
+        window.resetForm = () => { currentStep = 1; formContacts = []; document.querySelectorAll('input, textarea').forEach(i => i.value=''); updateFormStep(); renderFormContacts(); };
         window.nextStep = () => { if(currentStep === 1 && !document.getElementById('inp-company').value) return alert("Inserisci Nome Azienda"); if(currentStep < 3) { currentStep++; updateFormStep(); } else submitForm(); };
         window.prevStep = () => { if(currentStep > 1) { currentStep--; updateFormStep(); } };
         function updateFormStep() {
@@ -739,25 +668,32 @@
         };
         function renderFormContacts() { document.getElementById('form-contacts-list').innerHTML = formContacts.map((c,i) => `<div class="flex justify-between items-center bg-gray-50 p-2 rounded text-sm border border-gray-200"><span>${c.name} ${c.surname}</span><button onclick="formContacts.splice(${i},1);renderFormContacts()" class="text-red-500 font-bold">&times;</button></div>`).join(''); }
 
+        // TOGGLE FIERA FIELD
+        window.toggleFieraField = (sourceId, targetId) => {
+            const val = document.getElementById(sourceId).value;
+            const el = document.getElementById(targetId);
+            if(val === 'Fiera') {
+                 el.classList.remove('hidden');
+            } else {
+                 el.classList.add('hidden');
+                 // Reset value if hidden so it doesn't get saved if changed back
+                 const select = el.querySelector('select');
+                 if(select) select.value = "";
+            }
+        };
+
         async function submitForm() {
             const agent = document.getElementById('inp-agent').value;
             if(!agent) return alert("Inserisci il tuo Cognome");
-            const getChecks = (name, customId) => {
-                const checked = Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(c => c.value);
-                const customInput = document.getElementById(customId);
-                if(customInput && customInput.value.trim()) {
-                    checked.push(customInput.value.trim());
-                }
-                return checked.length > 0 ? checked.join('; ') : '';
-            };
             const data = {
                 companyName: document.getElementById('inp-company').value,
                 companyState: document.getElementById('inp-company-state').value, 
                 companyCity: document.getElementById('inp-city').value,
                 companyAddress: document.getElementById('inp-address').value,
-                division: getChecks('division'),
-                channel: getChecks('channel', 'inp-custom-channel'),
-                sector: getChecks('sector', 'inp-custom-sector'),
+                // Simple Text Inputs for Stability
+                division: document.getElementById('inp-division').value,
+                channel: document.getElementById('inp-channel').value,
+                sector: document.getElementById('inp-sector').value,
                 competitors: document.getElementById('inp-competitors').value, 
                 priceSensitivity: document.getElementById('inp-price').value, 
                 expectedVolume: document.getElementById('inp-vol').value, 
@@ -768,6 +704,7 @@
                 notes: document.getElementById('inp-notes').value,
                 agentName: agent,
                 contacts: formContacts,
+                fiera: document.getElementById('inp-fiera') ? document.getElementById('inp-fiera').value : '', // SAVE FIERA
                 timestamp: window.serverTimestamp()
             };
             try { await window.addDoc(window.collection(window.db, "reports"), data); alert("Report salvato!"); nav('dashboard'); } catch(e) { alert("Errore: " + e.message); }
@@ -816,6 +753,12 @@
             document.getElementById('edit-price').value = r.priceSensitivity || '';
             document.getElementById('edit-competitors').value = r.competitors || '';
             document.getElementById('edit-notes').value = r.notes || '';
+            document.getElementById('edit-meeting-type').value = r.meetingType || '';
+            document.getElementById('edit-fiera').value = r.fiera || '';
+            
+            // Trigger visibility logic for edit modal
+            toggleFieraField('edit-meeting-type', 'edit-container-fiera');
+
             document.getElementById('edit-contacts-read').innerHTML = (r.contacts||[]).map(c=>`${c.name} ${c.surname}`).join(', ');
             document.getElementById('slide-over').classList.remove('hidden');
             setTimeout(() => document.getElementById('slide-panel').classList.remove('translate-x-full'), 10);
@@ -835,7 +778,9 @@
                 expectedVolume: document.getElementById('edit-volume').value,
                 priceSensitivity: document.getElementById('edit-price').value,
                 competitors: document.getElementById('edit-competitors').value,
-                notes: document.getElementById('edit-notes').value
+                notes: document.getElementById('edit-notes').value,
+                meetingType: document.getElementById('edit-meeting-type').value, // SAVE MEETING TYPE
+                fiera: document.getElementById('edit-fiera').value // SAVE FIERA
             };
             try { await window.updateDoc(window.doc(window.db, "reports", id), updates); alert("Modifiche salvate!"); closeSlideOver(); } 
             catch(e) { alert("Errore: " + e.message); }
@@ -870,11 +815,14 @@
             const rId = document.getElementById('c-edit-id').value, idx = document.getElementById('c-edit-idx').value, r = allReports.find(x => x.id === rId);
             if(r) {
                 const contactData = { name: document.getElementById('ce-name').value, surname: document.getElementById('ce-surname').value, role: document.getElementById('ce-role').value, email: document.getElementById('ce-email').value, phone: document.getElementById('ce-phone').value };
-                if (idx === "NEW_TO_REPORT") { if (!r.contacts) r.contacts = []; r.contacts.push(contactData); } else { r.contacts[idx] = contactData; }
-                await window.updateDoc(window.doc(window.db, "reports", rId), { contacts: r.contacts });
-                alert(idx === "NEW_TO_REPORT" ? "Contatto aggiunto!" : "Contatto aggiornato!");
-                closeContactModal();
-                if (!document.getElementById('slide-over').classList.contains('hidden')) { document.getElementById('edit-contacts-read').innerHTML = (r.contacts||[]).map(c=>`${c.name} ${c.surname}`).join(', '); }
+                let newContacts = r.contacts ? [...r.contacts] : [];
+                if (idx === "NEW_TO_REPORT") { newContacts.push(contactData); } else { newContacts[idx] = contactData; }
+                try {
+                    await window.updateDoc(window.doc(window.db, "reports", rId), { contacts: newContacts });
+                    alert(idx === "NEW_TO_REPORT" ? "Contatto aggiunto!" : "Contatto aggiornato!");
+                    closeContactModal();
+                    if (!document.getElementById('slide-over').classList.contains('hidden')) { document.getElementById('edit-contacts-read').innerHTML = newContacts.map(c=>`${c.name} ${c.surname}`).join(', '); }
+                } catch(e) { alert("Errore: " + e.message); }
             }
         };
         window.deleteContactFromModal = async () => {
@@ -882,7 +830,11 @@
              if (idx === "NEW_TO_REPORT") { closeContactModal(); return; }
              if(confirm("Eliminare contatto?")) {
                   const r = allReports.find(x => x.id === rId);
-                  if(r) { r.contacts.splice(idx, 1); await window.updateDoc(window.doc(window.db, "reports", rId), { contacts: r.contacts }); alert("Eliminato."); closeContactModal(); }
+                  if(r) { 
+                      let newContacts = [...r.contacts];
+                      newContacts.splice(idx, 1);
+                      try { await window.updateDoc(window.doc(window.db, "reports", rId), { contacts: newContacts }); alert("Eliminato."); closeContactModal(); } catch(e) { alert("Errore: " + e.message); }
+                  }
              }
         };
     </script>
