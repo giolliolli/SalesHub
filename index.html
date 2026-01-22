@@ -23,10 +23,21 @@
             theme: {
                 extend: {
                     colors: {
-                        cerve: { DEFAULT: '#b01b30', hover: '#8a1525', light: '#fdf2f2', text: '#b01b30' }
+                        cerve: {
+                            DEFAULT: '#b01b30', // Rosso Cerve
+                            hover: '#8a1525',
+                            light: '#fdf2f2',
+                            text: '#b01b30'
+                        }
                     },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    spacing: { 'safe-top': 'env(safe-area-inset-top)', 'safe-bottom': 'env(safe-area-inset-bottom)' }
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    spacing: {
+                        'safe-top': 'env(safe-area-inset-top)',
+                        'safe-bottom': 'env(safe-area-inset-bottom)',
+                        'nav-height': '60px'
+                    }
                 }
             }
         }
@@ -34,21 +45,48 @@
 
     <style>
         body { background-color: #f8fafc; color: #334155; }
+        
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Transitions */
         .view-section { display: none; opacity: 0; transition: opacity 0.3s ease; }
         .view-section.active { display: block; opacity: 1; }
-        .input-cerve { width: 100%; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background-color: white; transition: all 0.2s; font-size: 0.875rem; }
-        .input-cerve:focus { outline: none; border-color: #b01b30; box-shadow: 0 0 0 3px rgba(176, 27, 48, 0.1); }
+        
+        /* Form Elements overrides */
+        .input-cerve {
+            width: 100%; padding: 0.5rem 1rem; border-radius: 0.5rem;
+            border: 1px solid #e2e8f0; background-color: white;
+            transition: all 0.2s; font-size: 0.875rem;
+        }
+        .input-cerve:focus {
+            outline: none; border-color: #b01b30; box-shadow: 0 0 0 3px rgba(176, 27, 48, 0.1);
+        }
         .label-tiny { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 0.25rem; }
-        .checkbox-item input[type="checkbox"] { accent-color: #b01b30; width: 1.1rem; height: 1.1rem; cursor: pointer; }
+
+        /* Checkbox Cerve Style */
+        .checkbox-item input[type="checkbox"] {
+            accent-color: #b01b30; width: 1.1rem; height: 1.1rem; cursor: pointer;
+        }
+
+        /* Mobile Adjustments */
         .mobile-nav-item.active { color: #b01b30; }
+        .mobile-nav-item.active i { stroke: #b01b30; }
+        
+        /* Accordion Animation */
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
         .rotate-180 { transform: rotate(180deg); }
+
+        /* Select Wrapper Style */
         .select-wrapper { position: relative; }
         .select-wrapper::after { content: ''; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #6b7280; pointer-events: none; }
+        
+        /* Padding Safe Area per Mobile Header */
         .header-safe-area { padding-top: env(safe-area-inset-top); }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -74,7 +112,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Global Exports
+        // Esposizione globale
         window.db = db;
         window.auth = auth;
         window.collection = collection;
@@ -89,10 +127,12 @@
         window.getDocs = getDocs;
         window.where = where;
 
+        // Auth Listener
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('login-view').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
+                // Estrae Nome Utente dalla mail
                 const emailName = user.email.split('@')[0].replace('.', ' ');
                 const formattedName = emailName.replace(/\b\w/g, l => l.toUpperCase());
                 document.getElementById('user-name-display').textContent = formattedName;
@@ -157,7 +197,7 @@
             </div>
         </aside>
 
-        <!-- CONTENT -->
+        <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col h-full overflow-hidden relative">
             <header class="md:hidden bg-white border-b border-gray-200 p-4 pt-safe-top flex justify-between items-center z-20 header-safe-area">
                 <div class="flex items-center gap-2"><img src="Logo CERVE WebApp.jpg" class="w-8 h-8 rounded object-cover"><span class="font-bold text-cerve">Cerve Sales</span></div>
@@ -194,8 +234,15 @@
                     <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                         <h2 class="text-2xl font-bold text-gray-800">Visione Strategica <span class="text-xs font-normal text-gray-500 ml-2">(Clicca i grafici per filtrare)</span></h2>
                         <div class="flex items-center gap-3 w-full md:w-auto">
-                             <div class="relative flex-1 md:w-64"><i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i><input id="visione-search" class="input-cerve pl-9 py-2" placeholder="Filtra grafici..." oninput="updateVisioneCharts()"></div>
-                             <div id="active-filter-badge" class="hidden items-center bg-cerve-light text-cerve px-3 py-2 rounded-lg text-sm border border-cerve shadow-sm"><span class="font-bold mr-2 whitespace-nowrap" id="active-filter-text">Filtro</span><button onclick="resetVisioneFilter()" class="hover:text-red-800"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+                             <div class="relative flex-1 md:w-64">
+                                <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                                <input id="visione-search" class="input-cerve pl-9 py-2" placeholder="Filtra grafici..." oninput="updateVisioneCharts()">
+                            </div>
+                            <!-- FILTRO ATTIVO -->
+                            <div id="active-filter-badge" class="hidden items-center bg-cerve-light text-cerve px-3 py-2 rounded-lg text-sm border border-cerve shadow-sm">
+                                <span class="font-bold mr-2 whitespace-nowrap" id="active-filter-text">Filtro</span>
+                                <button onclick="resetVisioneFilter()" class="hover:text-red-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+                            </div>
                         </div>
                     </div>
                     
@@ -279,7 +326,7 @@
                                         <label class="label-tiny">Quale Fiera?</label>
                                         <select id="inp-fiera" class="input-cerve">
                                             <option value="">Seleziona...</option>
-                                            <option>SIGEP</option><option>PCD Paris</option><option>Ambiente Frankfurt</option><option>Vinitaly</option><option>LuxePack</option><option>SIMEI</option><option>BrauBeviale</option>BBTech Expo</option>
+                                            <option>SIGEP</option><option>PCD Paris</option><option>Ambiente Frankfurt</option><option>Vinitaly</option><option>LuxePack</option><option>SIMEI</option><option>BrauBeviale</option><option>BBTech Expo</option>
                                         </select>
                                     </div>
                                 </div>
@@ -330,7 +377,7 @@
     </div>
 
     <!-- MODALE INFO GUIDA -->
-    <div id="info-modal" class="fixed inset-0 z-[100] bg-black/50 hidden flex items-center justify-center p-4">
+    <div id="info-modal" class="fixed inset-0 z-[70] bg-black/50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl p-6 w-full max-w-sm">
             <h3 class="text-lg font-bold text-gray-800 mb-2">Suggerimenti</h3>
             <p class="text-sm text-gray-600 mb-4">Usa la virgola per separare più valori.</p>
@@ -382,7 +429,7 @@
                         <label class="label-tiny">Quale Fiera?</label>
                         <select id="edit-fiera" class="input-cerve">
                             <option value="">Seleziona...</option>
-                            <option>SIGEP</option><option>PCD Paris</option><option>Ambiente Frankfurt</option><option>Vinitaly</option><option>LuxePack</option><option>SIMEI</option><option>BrauBeviale</option>
+                            <option>SIGEP</option><option>PCD Paris</option><option>Ambiente Frankfurt</option><option>Vinitaly</option><option>LuxePack</option><option>SIMEI</option><option>BrauBeviale</option><option>BBTech Expo</option>
                         </select>
                     </div>
                     <div class="col-span-2"><label class="label-tiny">Contatti (Elenco lettura)</label><div id="edit-contacts-read" class="text-sm bg-gray-50 p-2 rounded text-gray-600"></div></div>
@@ -719,19 +766,29 @@
                      alert("VCard rilevata: Estrazione dati...");
                      const lines = decodedText.split('\n');
                      const orgLine = lines.find(l => l.startsWith('ORG:'));
-                     if(orgLine) document.getElementById('inp-company').value = orgLine.split(':')[1].trim().replace(/;/g, '');
+                     // Basic VCard parsing for Company Name
+                     if(orgLine) {
+                         document.getElementById('inp-company').value = orgLine.split(':')[1].trim().replace(/;/g, '');
+                     }
+                     // Add other VCard info to notes for manual processing
                      document.getElementById('inp-notes').value += "\n[Dati da QR]:\n" + decodedText;
                 } else if (decodedText.startsWith("{")) {
                      try {
                          const json = JSON.parse(decodedText);
                          if(json.company) document.getElementById('inp-company').value = json.company;
+                         // Map other fields if JSON structure matches our schema
                          if(json.city) document.getElementById('inp-city').value = json.city;
                          if(json.address) document.getElementById('inp-address').value = json.address;
                          if(json.state) document.getElementById('inp-company-state').value = json.state;
                      } catch(e) { document.getElementById('inp-notes').value += "\n[Dati da QR - JSON Error]: " + decodedText; }
                 } else {
-                     if (decodedText.length < 50) document.getElementById('inp-company').value = decodedText;
-                     else document.getElementById('inp-notes').value += "\n[Dati da QR]: " + decodedText;
+                     // Plain text fallback
+                     if (decodedText.length < 50) {
+                        document.getElementById('inp-company').value = decodedText;
+                     } else {
+                        document.getElementById('inp-notes').value += "\n[Dati da QR]: " + decodedText;
+                        alert("Codice QR letto e aggiunto alle note.");
+                     }
                 }
                 stopQR(); 
             });
